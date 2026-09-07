@@ -69,6 +69,7 @@
 
            #:cosine-similarity
            #:query-vector
+           #:query-text
 
            #:passthrough-chunker
            #:make-passthrough-chunker

@@ -95,6 +95,14 @@
     (vector query)
     (list (coerce query 'vector))))
 
+(defun query-text (query)
+  "QUERY is a string or RAG-QUERY with :text. Vector-only → NIL."
+  (etypecase query
+    (rag-query (rag-query-text query))
+    (string query)
+    (vector nil)
+    (list nil)))
+
 (defgeneric chunk (chunker document &key size overlap)
   (:documentation "Split DOCUMENT (RAG-DOCUMENT or string) into RAG-CHUNKs."))
 
@@ -244,12 +252,13 @@
                     (llm-protocol:embed-query
                      (%ensure-embedder (or (rag-pipeline-embedder pipeline)
                                            llm-protocol:*llm-backend*))
-                     text :model model :dimensions dimensions))))
-         (hits (query-store store vec :top-k k :filter (rag-query-filter q)))
-         (reranker (or (rag-pipeline-reranker pipeline)
-                       *rag-reranker*
-                       (make-identity-reranker))))
-    (rerank reranker q hits :top-k k)))
+                     text :model model :dimensions dimensions)))))
+    (setf (rag-query-embedding q) vec)
+    (let ((hits (query-store store q :top-k k :filter (rag-query-filter q)))
+          (reranker (or (rag-pipeline-reranker pipeline)
+                        *rag-reranker*
+                        (make-identity-reranker))))
+      (rerank reranker q hits :top-k k))))
 
 (defmethod retrieve ((pipeline null) query &key top-k model dimensions)
   (retrieve (%ensure-pipeline) query :top-k top-k :model model :dimensions dimensions))
