@@ -111,3 +111,27 @@
     (let ((hits (rag-protocol:retrieve pipe (%vec 1 0) :top-k 1)))
       (ok (equal "a" (rag-protocol:rag-chunk-id
                       (rag-protocol:rag-hit-chunk (first hits))))))))
+
+(defclass recording-store (rag-protocol:rag-vector-store)
+  ((last-query :initform nil :accessor recording-store-last-query)))
+
+(defmethod rag-protocol:query-store ((store recording-store) query &key top-k filter)
+  (declare (ignore top-k filter))
+  (setf (recording-store-last-query store) query)
+  nil)
+
+(deftest query-text-helper
+  (ok (equal "hi" (rag-protocol:query-text "hi")))
+  (ok (equal "q" (rag-protocol:query-text (rag-protocol:make-rag-query :text "q"))))
+  (ok (null (rag-protocol:query-text (%vec 1 0)))))
+
+(deftest retrieve-passes-rag-query
+  (let* ((store (make-instance 'recording-store))
+         (pipe (rag-protocol:make-rag-pipeline
+                :store store
+                :embedder (llm-protocol:make-mock-llm-backend))))
+    (rag-protocol:retrieve pipe "alpha" :top-k 3)
+    (let ((q (recording-store-last-query store)))
+      (ok (rag-protocol:rag-query-p q))
+      (ok (equal "alpha" (rag-protocol:rag-query-text q)))
+      (ok (rag-protocol:rag-query-embedding q)))))
