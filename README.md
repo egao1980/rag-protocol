@@ -8,6 +8,7 @@ Embeddings stay in [`llm-protocol`](https://github.com/egao1980/llm-protocol) (`
 |--------|------|------|
 | `rag-protocol` (`stack-rag`) | Protocol + mock store + passthrough chunker | this repo |
 | `rag-backend-memory` | In-process cosine store | [`egao1980/rag-backend-memory`](https://github.com/egao1980/rag-backend-memory) |
+| `rag-backend-sql` | Persist via `sql-protocol` (Lisp cosine) | [`egao1980/rag-backend-sql`](https://github.com/egao1980/rag-backend-sql) |
 | `rag-backend-text` | Recursive character splitter | [`egao1980/rag-backend-text`](https://github.com/egao1980/rag-backend-text) |
 
 ```lisp
