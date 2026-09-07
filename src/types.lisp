@@ -30,17 +30,19 @@
    (document-id :initarg :document-id :accessor rag-chunk-document-id :initform nil)
    (text :initarg :text :accessor rag-chunk-text :initform "")
    (embedding :initarg :embedding :accessor rag-chunk-embedding :initform nil)
+   (sparse :initarg :sparse :accessor rag-chunk-sparse :initform nil)
    (metadata :initarg :metadata :accessor rag-chunk-metadata :initform nil)))
 
 (defun rag-chunk-p (x)
   (typep x 'rag-chunk))
 
-(defun make-rag-chunk (&key id document-id text embedding metadata)
+(defun make-rag-chunk (&key id document-id text embedding sparse metadata)
   (make-instance 'rag-chunk
                  :id id
                  :document-id document-id
                  :text (or text "")
                  :embedding embedding
+                 :sparse sparse
                  :metadata metadata))
 
 (defclass rag-hit ()
@@ -57,15 +59,17 @@
 (defclass rag-query ()
   ((text :initarg :text :accessor rag-query-text :initform nil)
    (embedding :initarg :embedding :accessor rag-query-embedding :initform nil)
+   (sparse :initarg :sparse :accessor rag-query-sparse :initform nil)
    (top-k :initarg :top-k :accessor rag-query-top-k :initform 5)
    (filter :initarg :filter :accessor rag-query-filter :initform nil)))
 
 (defun rag-query-p (x)
   (typep x 'rag-query))
 
-(defun make-rag-query (&key text embedding (top-k 5) filter)
+(defun make-rag-query (&key text embedding sparse (top-k 5) filter)
   (make-instance 'rag-query
                  :text text
                  :embedding embedding
+                 :sparse sparse
                  :top-k top-k
                  :filter filter))
