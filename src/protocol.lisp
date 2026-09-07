@@ -11,12 +11,15 @@
   ((store :initarg :store :accessor rag-pipeline-store :initform nil)
    (embedder :initarg :embedder :accessor rag-pipeline-embedder :initform nil)
    (chunker :initarg :chunker :accessor rag-pipeline-chunker :initform nil)
-   (reranker :initarg :reranker :accessor rag-pipeline-reranker :initform nil)))
+   (reranker :initarg :reranker :accessor rag-pipeline-reranker :initform nil)
+   (sparse-encoder :initarg :sparse-encoder :accessor rag-pipeline-sparse-encoder
+                   :initform nil)))
 
-(defun make-rag-pipeline (&key store embedder chunker reranker)
+(defun make-rag-pipeline (&key store embedder chunker reranker sparse-encoder)
   (make-instance 'rag-pipeline
                  :store store :embedder embedder
-                 :chunker chunker :reranker reranker))
+                 :chunker chunker :reranker reranker
+                 :sparse-encoder sparse-encoder))
 
 (defvar *rag-store* nil)
 (defvar *rag-chunker* nil)
@@ -113,7 +116,7 @@
   (:documentation "Remove chunks by id. Missing ids signal RAG-NOT-FOUND (CONTINUE skips)."))
 
 (defgeneric query-store (store query &key top-k filter)
-  (:documentation "Nearest neighbors. QUERY is a float vector or RAG-QUERY with embedding."))
+  (:documentation "Nearest neighbors. QUERY is a vector, string, or RAG-QUERY (text / embedding / sparse)."))
 
 (defgeneric rerank (reranker query hits &key top-k)
   (:documentation "Reorder HITS. Default = score desc, truncated to TOP-K."))
@@ -215,6 +218,13 @@
                      (llm-protocol:llm-embedding-vector emb)))))
   chunks)
 
+(defun %encode-chunk-sparse (encoder chunks)
+  (when encoder
+    (dolist (ch chunks)
+      (unless (rag-chunk-sparse ch)
+        (setf (rag-chunk-sparse ch) (encode-sparse encoder ch)))))
+  chunks)
+
 (defmethod ingest ((pipeline rag-pipeline) documents &key model dimensions)
   (let* ((chunker (or (rag-pipeline-chunker pipeline)
                       (make-passthrough-chunker)))
@@ -224,6 +234,7 @@
          (docs (mapcar #'coerce-document (%as-list documents)))
          (chunks (mapcan (lambda (d) (copy-list (chunk chunker d))) docs)))
     (%embed-chunks embedder chunks :model model :dimensions dimensions)
+    (%encode-chunk-sparse (or (rag-pipeline-sparse-encoder pipeline) nil) chunks)
     (upsert store chunks)
     chunks))
 
@@ -254,6 +265,9 @@
                                            llm-protocol:*llm-backend*))
                      text :model model :dimensions dimensions)))))
     (setf (rag-query-embedding q) vec)
+    (let ((encoder (rag-pipeline-sparse-encoder pipeline)))
+      (when (and encoder (null (rag-query-sparse q)) (rag-query-text q))
+        (setf (rag-query-sparse q) (encode-sparse encoder (rag-query-text q)))))
     (let ((hits (query-store store q :top-k k :filter (rag-query-filter q)))
           (reranker (or (rag-pipeline-reranker pipeline)
                         *rag-reranker*

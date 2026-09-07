@@ -27,6 +27,7 @@
            #:rag-chunk-document-id
            #:rag-chunk-text
            #:rag-chunk-embedding
+           #:rag-chunk-sparse
            #:rag-chunk-metadata
 
            #:rag-hit
@@ -41,6 +42,7 @@
            #:rag-query-p
            #:rag-query-text
            #:rag-query-embedding
+           #:rag-query-sparse
            #:rag-query-top-k
            #:rag-query-filter
 
@@ -53,6 +55,7 @@
            #:rag-pipeline-embedder
            #:rag-pipeline-chunker
            #:rag-pipeline-reranker
+           #:rag-pipeline-sparse-encoder
 
            #:*rag-store*
            #:*rag-chunker*
@@ -70,6 +73,36 @@
            #:cosine-similarity
            #:query-vector
            #:query-text
+           #:query-sparse
+
+           #:rag-analyzer
+           #:analyze
+           #:tokenize
+           #:porter-stem
+           #:english-stopword-p
+           #:*english-stopwords*
+           #:simple-analyzer
+           #:make-simple-analyzer
+           #:simple-analyzer-stemmer
+           #:simple-analyzer-stopwords
+
+           #:rag-fusion
+           #:fuse
+           #:rrf-fuse
+           #:linear-fuse
+           #:rrf-fusion
+           #:make-rrf-fusion
+           #:rrf-fusion-k
+           #:linear-fusion
+           #:make-linear-fusion
+           #:linear-fusion-weights
+           #:*rag-fusion*
+
+           #:rag-sparse-encoder
+           #:encode-sparse
+           #:sparse-dot
+           #:simple-sparse-encoder
+           #:make-simple-sparse-encoder
 
            #:passthrough-chunker
            #:make-passthrough-chunker
