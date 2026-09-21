@@ -91,7 +91,7 @@
                               (length vec) (mock-store-dimension store))))
     (maphash (lambda (id chunk)
                (declare (ignore id))
-               (when (or (null filter) (funcall filter chunk))
+               (when (chunk-matches-filter chunk filter)
                  (push (make-rag-hit
                         :chunk chunk
                         :score (cosine-similarity vec (rag-chunk-embedding chunk)))

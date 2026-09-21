@@ -61,15 +61,19 @@
    (embedding :initarg :embedding :accessor rag-query-embedding :initform nil)
    (sparse :initarg :sparse :accessor rag-query-sparse :initform nil)
    (top-k :initarg :top-k :accessor rag-query-top-k :initform 5)
-   (filter :initarg :filter :accessor rag-query-filter :initform nil)))
+   (filter :initarg :filter :accessor rag-query-filter :initform nil)
+   (interval :initarg :interval :accessor rag-query-interval :initform nil)
+   (kind :initarg :kind :accessor rag-query-kind :initform nil)))
 
 (defun rag-query-p (x)
   (typep x 'rag-query))
 
-(defun make-rag-query (&key text embedding sparse (top-k 5) filter)
+(defun make-rag-query (&key text embedding sparse (top-k 5) filter interval kind)
   (make-instance 'rag-query
                  :text text
                  :embedding embedding
                  :sparse sparse
                  :top-k top-k
-                 :filter filter))
+                 :filter filter
+                 :interval interval
+                 :kind kind))

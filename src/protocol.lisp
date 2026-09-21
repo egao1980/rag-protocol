@@ -106,6 +106,84 @@
     (vector nil)
     (list nil)))
 
+(defun %unix-seconds (value)
+  "Integer unix seconds, or a datetime-protocol INSTANT if that package is loaded."
+  (cond
+    ((null value) nil)
+    ((integerp value) value)
+    ((and (find-package '#:datetime-protocol)
+          (let ((pred (find-symbol "INSTANTP" '#:datetime-protocol)))
+            (and pred (funcall pred value))))
+     (funcall (find-symbol "INSTANT-SECONDS" '#:datetime-protocol) value))
+    (t nil)))
+
+(defun %chunk-unix (chunk)
+  (let ((md (rag-chunk-metadata chunk)))
+    (%unix-seconds (or (getf md :ts) (getf md :timestamp)))))
+
+(defun %chunk-kind (chunk)
+  (let ((md (rag-chunk-metadata chunk)))
+    (or (getf md :kind) (getf md :type))))
+
+(defun %interval-contains-unix (interval unix)
+  (cond
+    ((null interval) t)
+    ((null unix) nil)
+    ((and (consp interval) (getf interval :start))
+     (let ((start (%unix-seconds (getf interval :start)))
+           (end (%unix-seconds (getf interval :end))))
+       (and start end (<= start unix) (< unix end))))
+    ((and (find-package '#:datetime-protocol)
+          (let ((pred (find-symbol "INTERVALP" '#:datetime-protocol)))
+            (and pred (funcall pred interval))))
+     (funcall (find-symbol "INTERVAL-CONTAINS-P" '#:datetime-protocol)
+              interval
+              (funcall (find-symbol "MAKE-INSTANT" '#:datetime-protocol) unix)))
+    (t t)))
+
+(defun %kinds-as-list (kind)
+  (cond
+    ((null kind) nil)
+    ((listp kind) kind)
+    (t (list kind))))
+
+(defun chunk-matches-filter (chunk filter)
+  "FILTER is NIL, a function, or a plist (:since :until :interval :kind)."
+  (cond
+    ((null filter) t)
+    ((functionp filter) (funcall filter chunk))
+    ((listp filter)
+     (let* ((unix (%chunk-unix chunk))
+            (kind (%chunk-kind chunk))
+            (since (%unix-seconds (getf filter :since)))
+            (until (%unix-seconds (getf filter :until)))
+            (interval (getf filter :interval))
+            (kinds (%kinds-as-list (getf filter :kind))))
+       (and (or (null since) (and unix (>= unix since)))
+            (or (null until) (and unix (< unix until)))
+            (%interval-contains-unix interval unix)
+            (or (null kinds)
+                (member kind kinds :test #'equal)))))
+    (t t)))
+
+(defun compose-rag-filter (query)
+  "Merge RAG-QUERY filter + interval + kind into one filter for QUERY-STORE."
+  (let ((base (and (rag-query-p query) (rag-query-filter query)))
+        (interval (and (rag-query-p query) (rag-query-interval query)))
+        (kind (and (rag-query-p query) (rag-query-kind query))))
+    (if (and (null interval) (null kind))
+        base
+        (let ((plist (append (and interval (list :interval interval))
+                             (and kind (list :kind kind)))))
+          (cond
+            ((functionp base)
+             (lambda (ch)
+               (and (chunk-matches-filter ch plist)
+                    (funcall base ch))))
+            ((listp base)
+             (append plist base))
+            (t plist))))))
+
 (defgeneric chunk (chunker document &key size overlap)
   (:documentation "Split DOCUMENT (RAG-DOCUMENT or string) into RAG-CHUNKs."))
 
@@ -268,7 +346,7 @@
     (let ((encoder (rag-pipeline-sparse-encoder pipeline)))
       (when (and encoder (null (rag-query-sparse q)) (rag-query-text q))
         (setf (rag-query-sparse q) (encode-sparse encoder (rag-query-text q)))))
-    (let ((hits (query-store store q :top-k k :filter (rag-query-filter q)))
+    (let ((hits (query-store store q :top-k k :filter (compose-rag-filter q)))
           (reranker (or (rag-pipeline-reranker pipeline)
                         *rag-reranker*
                         (make-identity-reranker))))

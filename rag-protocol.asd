@@ -1,5 +1,5 @@
 (defsystem "rag-protocol"
-  :version "0.1.2"
+  :version "0.1.3"
   :description "CLOS RAG protocol (chunk / store / rerank / retrieve) for cl-stack"
   :author "egao1980"
   :license "MIT"

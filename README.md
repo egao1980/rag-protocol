@@ -31,6 +31,8 @@ Embeddings stay in [`llm-protocol`](https://github.com/egao1980/llm-protocol) (`
 
 `retrieve` passes a `rag-query` (text + embedding + optional sparse) into `query-store`. `query-text` / `query-vector` / `query-sparse` unwrap it.
 
+`rag-query` also carries optional `interval` + `kind`. `chunk-matches-filter` accepts a function **or** a plist `(:since :until :interval :kind)`. Chunk metadata `:ts` (unix seconds) and `:kind`. Document chunks stay out of conversation-time views when `:kind :text` is set.
+
 GFs on this protocol — not a second package:
 
 | Role | GF | In-tree |

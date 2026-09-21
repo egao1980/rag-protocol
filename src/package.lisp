@@ -45,6 +45,10 @@
            #:rag-query-sparse
            #:rag-query-top-k
            #:rag-query-filter
+           #:rag-query-interval
+           #:rag-query-kind
+           #:chunk-matches-filter
+           #:compose-rag-filter
 
            #:rag-vector-store
            #:rag-chunker

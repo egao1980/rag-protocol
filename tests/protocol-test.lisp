@@ -135,3 +135,27 @@
       (ok (rag-protocol:rag-query-p q))
       (ok (equal "alpha" (rag-protocol:rag-query-text q)))
       (ok (rag-protocol:rag-query-embedding q)))))
+
+(defun %chunk-md (id text emb metadata)
+  (rag-protocol:make-rag-chunk :id id :document-id "d" :text text
+                               :embedding emb :metadata metadata))
+
+(deftest mock-query-time-and-kind-filter
+  (let ((store (rag-protocol:make-mock-vector-store)))
+    (rag-protocol:upsert
+     store
+     (list (%chunk-md "a" "keep" (%vec 1 0) '(:ts 100 :kind :text))
+           (%chunk-md "b" "old" (%vec 1 0) '(:ts 10 :kind :text))
+           (%chunk-md "c" "doc" (%vec 1 0) '(:ts 100 :kind :document))))
+    (let ((hits (rag-protocol:query-store
+                 store (%vec 1 0) :top-k 5
+                 :filter '(:since 50 :until 200 :kind :text))))
+      (ok (= 1 (length hits)))
+      (ok (equal "a" (rag-protocol:rag-chunk-id
+                      (rag-protocol:rag-hit-chunk (first hits))))))
+    (ok (rag-protocol:chunk-matches-filter
+         (%chunk-md "a" "x" (%vec 1) '(:ts 100 :kind :text))
+         '(:since 50 :kind (:text :action))))
+    (ng (rag-protocol:chunk-matches-filter
+         (%chunk-md "d" "x" (%vec 1) '(:ts 100 :kind :document))
+         '(:kind :text)))))
